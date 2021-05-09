@@ -9,6 +9,7 @@ int main()
     print("hi");
     print();
     print(3, vectDouble(), 2);
+    repr(3, vectDouble(), 2);
 
     show(os::listDir("."));
 
