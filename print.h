@@ -15,6 +15,11 @@
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
+    if (v.size() == 0)
+    {
+        os << "[ ]" << std::endl;
+        return os;
+    }
     os << "[";
     for (typename std::vector<T>::const_iterator it = v.begin(); it != v.end() - 1; ++it)
         os << *it << ", ";
@@ -22,32 +27,37 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
     return os;
 }
 
-void print()
+inline void print()
 {
     std::cout << std::endl;
 }
 template <typename T>
-void __print(T a)
+inline void __print(T a)
 {
     std::cout << a;
 }
 template <typename T, class... ARG>
-void __print(T a, ARG... arg)
+inline void __print(T a, ARG... arg)
 {
     __print(a);
     std::cout << ", ";
     __print(arg...);
 }
 template <class... ARG>
-void print(ARG... arg)
+inline void print(ARG... arg)
 {
     __print(arg...);
     std::cout << std::endl;
 }
 template <typename T>
-void print(const std::vector<T>& v)
+void __print(const std::vector<T>& v)
 {
     typedef typename std::vector<T>::const_iterator const_iterator;
+    if (v.size() == 0)
+    {
+        std::cout << "[ ]";
+        return;
+    }
     const_iterator end{v.end() - 1};
     bool isContinue{false};
     if (v.size() > Max_Print_Vector_Size)
@@ -59,7 +69,7 @@ void print(const std::vector<T>& v)
     const_iterator it = v.begin();
     for (; it != end; ++it)
         std::cout << *it << ", ";
-    std::cout << *it << (isContinue ? ", ...]" : "]") << std::endl;
+    std::cout << *it << (isContinue ? ", ...]" : "]");
 }
 
 #endif // PRINT_H

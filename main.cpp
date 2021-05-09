@@ -8,6 +8,7 @@ int main()
     print("Hello World!", 5, 2.5, true);
     print("hi");
     print();
+    print(3, vectDouble(), 2);
 
     show(os::listDir("."));
 
