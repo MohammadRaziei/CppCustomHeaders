@@ -85,6 +85,7 @@ std::string typeName(const T& v, bool showStd = true)
         typeStr = typeStr.substr(0, found) + std::string(numFound, '>');
     }
     typeStr = std::regex_replace(typeStr, std::regex("class "), "");
+    typeStr = std::regex_replace(typeStr, std::regex(" const "), "");
     if (!showStd) typeStr = std::regex_replace(typeStr, std::regex("std::"), "");
     return typeStr;
 }
@@ -153,6 +154,10 @@ size_t countSubString(const std::string& str, const std::string& sub, size_t sta
 }
 // clang-format on
 
+std::string toStr(const bool& b)
+{
+    return (b ? "true" : "false");
+}
 template <typename Container>
 std::string toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
 {
@@ -207,7 +212,7 @@ void print()
 template <typename T>
 void _printn(const T& a, std::false_type)
 {
-    std::cout << a;
+    std::cout << np::toStr(a);
 }
 template <typename T>
 void _printn(const T& a, std::true_type)
@@ -241,7 +246,7 @@ template <typename T>
 void _reprn(const T& value, std::false_type)
 {
     std::ostringstream out;
-    out << value;
+    out << np::toStr(value);
     std::cout << np::typeNameSimplifed(value) << "(" << out.str() << ")";
 }
 template <typename Container>

@@ -16,6 +16,7 @@ int main()
     vectCompFloat a{{1.f, 2.f}, {3.f, 4.f}, {5.f, 6.f}};
     std::vector<vectCompFloat> vecA(2, a);
     vectFloat v(100);
+    repr(np::toStr(true));
     repr(np::toStr(a));
     repr(a);
     print(np::toStr(a));
@@ -23,7 +24,8 @@ int main()
     show(v);
     repr(std::list<vectDouble>());
     print(np::getShape(5));
-    print("Hello World!", 5, 2.5, true);
+    print("Hello World!", 5, 2.5, true, 3.14f, 25l);
+    repr("Hello World!", 5, 2.5, true, 3.14f, 25l);
     print("hi");
     print();
     print(3, vectDouble(), 2);
