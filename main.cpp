@@ -17,8 +17,8 @@ int main()
     std::vector<vectCompFloat> vecA(2, a);
     vectFloat v(100);
     repr(np::toStr(a));
+    repr(a);
     print(np::toStr(a));
-    print((a));
     std::generate(v.begin(), v.end(), [n = 0.f]() mutable { return float(++n); });
     show(v);
     repr(std::list<vectDouble>());

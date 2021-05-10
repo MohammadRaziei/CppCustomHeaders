@@ -71,6 +71,7 @@ template <typename T>
 std::string typeName(const T& v, bool showStd = true)
 {
     std::string typeStr = typeid(v).name();
+    typeStr = std::regex_replace(typeStr, std::regex("class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >"), "std::string");
     //    typeStr = std::regex_replace(typeStr, std::regex(",class std::allocator<(?:[^><]+|<(?:[^><]+|<[^><]*>)*>)*> "), "");
     std::string classAllocator = ",class std::allocator";
     const size_t found = typeStr.find(classAllocator);
@@ -83,7 +84,6 @@ std::string typeName(const T& v, bool showStd = true)
         numFound = static_cast<size_t>(std::log2(static_cast<float>(numFound + 1)));
         typeStr = typeStr.substr(0, found) + std::string(numFound, '>');
     }
-    typeStr = std::regex_replace(typeStr, std::regex("std::basic_string<char,struct std::char_traits<char>"), "std::string");
     typeStr = std::regex_replace(typeStr, std::regex("class "), "");
     if (!showStd) typeStr = std::regex_replace(typeStr, std::regex("std::"), "");
     return typeStr;
