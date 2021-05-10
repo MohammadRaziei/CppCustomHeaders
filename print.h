@@ -6,6 +6,7 @@
 #include <vector>
 #include <sstream>
 #include <regex>
+#include <type_traits>
 
 #define eprintf(format, ...) fprintf(stderr, format __VA_OPT__(, ) __VA_ARGS__)
 #define show(x)              \
@@ -17,99 +18,55 @@
 #endif // Max_Print_Vector_Size
 
 template <typename T>
-std::string vectorToStr(const std::vector<T>& v,
-     const size_t maxPrintSize = size_t(-1),
-     const std::string& sep = ", ",
-     const std::string& opening = "[",
-     const std::string& closing = "]",
-     bool removeEndSep = true)
+struct has_const_iterator
 {
-    std::ostringstream out;
-    typedef typename std::vector<T>::const_iterator const_iterator;
-    if (v.size() == 0)
+private:
+    typedef char yes;
+    typedef struct
     {
-        out << opening << " " << closing;
-    }
-    else
-    {
-        const_iterator end{v.end() - 1};
-        bool isContinue{false};
-        if (v.size() > maxPrintSize)
-        {
-            end = v.begin() + Max_Print_Vector_Size - 1;
-            isContinue = true;
-        }
-        out << opening;
-        const_iterator it = v.begin();
-        for (; it != end; ++it)
-            out << *it << sep;
-        out << *it << (isContinue ? sep + "..." : (removeEndSep ? "" : sep)) << closing;
-    }
-    return out.str();
-}
+        char array[2];
+    } no;
 
-template <class STREAM, typename T>
-STREAM& operator<<(STREAM& out, const std::vector<T>& v)
-{
-    out << vectorToStr(v, Max_Print_Vector_Size);
-    return out;
-}
+    template <typename C>
+    static yes test(typename C::const_iterator*);
+    template <typename C>
+    static no test(...);
 
-inline void print()
-{
-    std::cout << std::endl;
-}
-template <typename T>
-inline void printn(const T& a)
-{
-    std::cout << a;
-}
-template <typename T, class... ARG>
-inline void printn(const T& a, const ARG&... arg)
-{
-    printn(a);
-    std::cout << ", ";
-    printn(arg...);
-}
-template <class... ARG>
-inline void print(const ARG&... arg)
-{
-    printn(arg...);
-    std::cout << std::endl;
-}
-
-///
-/// REPR
-///
+public:
+    static const bool value = sizeof(test<T>(0)) == sizeof(yes);
+    typedef T type;
+};
 
 template <typename T>
-inline void reprn(const T& value)
+struct has_begin_end
 {
-    std::ostringstream out;
-    out << value;
-    std::cout << typeName(value) << "(" << out.str() << ")";
-}
+    template <typename C>
+    static char (&f(typename std::enable_if<
+         std::is_same<decltype(static_cast<typename C::const_iterator (C::*)() const>(&C::begin)),
+              typename C::const_iterator (C::*)() const>::value,
+         void>::type*))[1];
+
+    template <typename C>
+    static char (&f(...))[2];
+
+    template <typename C>
+    static char (&g(typename std::enable_if<
+         std::is_same<decltype(static_cast<typename C::const_iterator (C::*)() const>(&C::end)),
+              typename C::const_iterator (C::*)() const>::value,
+         void>::type*))[1];
+
+    template <typename C>
+    static char (&g(...))[2];
+
+    static bool const beg_value = sizeof(f<T>(0)) == 1;
+    static bool const end_value = sizeof(g<T>(0)) == 1;
+};
 template <typename T>
-void reprn(const std::vector<T>& v)
+struct is_container : std::integral_constant<bool, !std::is_same<T, std::string>::value && has_const_iterator<T>::value && has_begin_end<T>::beg_value && has_begin_end<T>::end_value>
 {
-    std::ostringstream out;
-    out << v;
-    std::cout << typeNameSimplifed(v) << "(shape:" << vectorToStr(getShape(v), 5, ",", "(", ")", false)
-              << ", " << out.str() << ")";
-}
-template <typename T, class... ARG>
-inline void reprn(const T& a, const ARG&... arg)
+};
+namespace np
 {
-    reprn(a);
-    std::cout << ", ";
-    reprn(arg...);
-}
-template <class... ARG>
-inline void repr(const ARG&... arg)
-{
-    reprn(arg...);
-    std::cout << std::endl;
-}
 template <typename T>
 std::string typeName(const T& v, bool showStd = true)
 {
@@ -119,9 +76,12 @@ std::string typeName(const T& v, bool showStd = true)
     const size_t found = typeStr.find(classAllocator);
     if (found != std::string::npos)
     {
-        typeStr = typeStr.substr(0, found);
-        const size_t numFound = countSubString(typeStr, "vector");
-        typeStr += std::string(numFound, '>');
+        //        typeStr = typeStr.substr(0, found);
+        //        const size_t numFound = countSubString(typeStr, "vector");
+        //        typeStr += std::string(numFound, '>');
+        size_t numFound = countSubString(typeStr, classAllocator, found + 1) + 1;
+        numFound = static_cast<size_t>(std::log2(static_cast<float>(numFound + 1)));
+        typeStr = typeStr.substr(0, found) + std::string(numFound, '>');
     }
     typeStr = std::regex_replace(typeStr, std::regex("std::basic_string<char,struct std::char_traits<char>"), "std::string");
     typeStr = std::regex_replace(typeStr, std::regex("class "), "");
@@ -144,28 +104,42 @@ std::string typeNameSimplifed(const T& v)
 }
 
 template <typename T>
-std::vector<size_t> getShape(const T&)
-{
-    return std::vector<size_t>();
-}
+void __getShape(const T&, std::vector<size_t>&);
+
 template <typename T>
-std::vector<size_t> getShape(const std::vector<T>& v)
+void __getShape(const T&, std::vector<size_t>&, std::false_type)
+{
+}
+
+template <typename Container>
+void __getShape(const Container& v, std::vector<size_t>& sizeShape, std::true_type)
 {
     size_t size{v.size()};
-    std::vector<size_t> shp;
-    shp.push_back(size);
-    std::vector<size_t> nested;
+    sizeShape.push_back(size);
     if (size == 0)
     {
-        std::vector<T> vt(v);
+        typedef typename std::iterator_traits<typename Container::iterator>::value_type T;
+        Container vt(v);
         vt.push_back(T());
-        nested = getShape(vt.front());
+        __getShape(vt.front(), sizeShape);
     }
     else
     {
-        nested = getShape(v.front());
+        __getShape(v.front(), sizeShape);
     }
-    shp.insert(shp.end(), nested.begin(), nested.end());
+}
+
+template <typename T>
+void __getShape(const T& v, std::vector<size_t>& shp)
+{
+    __getShape(v, shp, is_container<T>());
+}
+
+template <typename T>
+std::vector<size_t> getShape(const T& v)
+{
+    std::vector<size_t> shp;
+    __getShape(v, shp);
     return shp;
 }
 
@@ -177,6 +151,124 @@ size_t countSubString(const std::string& str, const std::string& sub, size_t sta
     for (size_t i = start; (i = str.find(sub, i)) != std::string::npos; num++, i += len);
     return num;
 }
+// clang-format on
+
+template <typename Container>
+std::string toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
+{
+    std::ostringstream out;
+    typedef typename Container::const_iterator const_iterator;
+    if (v.size() == 0)
+    {
+        out << opening << " " << closing;
+    }
+    else
+    {
+        size_t size{std::min<size_t>(maxPrintSize, v.size())};
+        bool isContinue{(v.size() > maxPrintSize)};
+        out << opening;
+        const_iterator it = v.begin();
+        for (size_t i{0}; (++i) < size; ++it)
+            out << *it << sep;
+        out << *it << (isContinue ? sep + "..." : (removeEndSep ? "" : sep)) << closing;
+    }
+    return out.str();
+}
+template <class T>
+std::string toStr(const T& v, const size_t, const std::string&, const std::string&, const std::string&, bool, std::false_type)
+{
+    std::ostringstream out;
+    out << v;
+    return out.str();
+}
+template <class Container>
+std::string toStr(const Container& v,
+     const size_t maxPrintSize = size_t(-1),
+     const std::string& sep = ", ",
+     const std::string& opening = "[",
+     const std::string& closing = "]",
+     bool removeEndSep = true)
+{
+    return toStr(v, maxPrintSize, sep, opening, closing, removeEndSep, is_container<Container>());
+}
+} // namespace np
+
+template <class STREAM, typename T>
+STREAM& operator<<(STREAM& out, const std::vector<T>& v)
+{
+    out << np::toStr(v, Max_Print_Vector_Size);
+    return out;
+}
+
+void print()
+{
+    std::cout << std::endl;
+}
+template <typename T>
+void _printn(const T& a, std::false_type)
+{
+    std::cout << a;
+}
+template <typename T>
+void _printn(const T& a, std::true_type)
+{
+    std::cout << np::toStr(a, Max_Print_Vector_Size);
+}
+template <typename T>
+void printn(const T& a)
+{
+    _printn(a, is_container<T>());
+}
+template <typename T, class... ARG>
+void printn(const T& a, const ARG&... arg)
+{
+    printn(a);
+    std::cout << ", ";
+    printn(arg...);
+}
+template <class... ARG>
+void print(const ARG&... arg)
+{
+    printn(arg...);
+    std::cout << std::endl;
+}
+
+///
+/// REPR
+///
+
+template <typename T>
+void _reprn(const T& value, std::false_type)
+{
+    std::ostringstream out;
+    out << value;
+    std::cout << np::typeNameSimplifed(value) << "(" << out.str() << ")";
+}
+template <typename Container>
+void _reprn(const Container& v, std::true_type)
+{
+    std::ostringstream out;
+    out << np::toStr(v, Max_Print_Vector_Size);
+    std::cout << np::typeNameSimplifed(v) << "(shape:" << np::toStr(np::getShape(v), 5, ",", "(", ")", false)
+              << ", " << out.str() << ")";
+}
+template <typename T>
+void reprn(const T& v)
+{
+    _reprn(v, is_container<T>());
+}
+template <typename T, class... ARG>
+void reprn(const T& a, const ARG&... arg)
+{
+    reprn(a);
+    std::cout << ", ";
+    reprn(arg...);
+}
+template <class... ARG>
+void repr(const ARG&... arg)
+{
+    reprn(arg...);
+    std::cout << std::endl;
+}
+
 #endif // PRINT_H
-
-

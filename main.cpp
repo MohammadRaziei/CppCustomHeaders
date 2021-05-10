@@ -5,14 +5,24 @@
 #include "global.h"
 #include "defines.h"
 
+#include <list>
+
 int main()
 {
+    std::cout << is_container<std::vector<int>>::value << std::endl; //true
+    std::cout << is_container<std::list<int>>::value << std::endl; //true
+    std::cout << is_container<int>::value << std::endl; //true
+
     vectCompFloat a{{1.f, 2.f}, {3.f, 4.f}, {5.f, 6.f}};
     std::vector<vectCompFloat> vecA(2, a);
     vectFloat v(100);
+    repr(np::toStr(a));
+    print(np::toStr(a));
+    print((a));
     std::generate(v.begin(), v.end(), [n = 0.f]() mutable { return float(++n); });
     show(v);
-    print(getShape(std::vector<vectDouble>()));
+    repr(std::list<vectDouble>());
+    print(np::getShape(5));
     print("Hello World!", 5, 2.5, true);
     print("hi");
     print();
