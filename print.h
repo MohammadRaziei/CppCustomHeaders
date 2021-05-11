@@ -69,6 +69,7 @@ template <typename T>
 struct is_container : std::integral_constant<bool, !std::is_same<T, std::string>::value && has_const_iterator<T>::value && has_begin_end<T>::beg_value && has_begin_end<T>::end_value>
 {
 };
+
 namespace np
 {
 // clang-format off
@@ -81,6 +82,9 @@ size_t countSubString(const std::string& str, const std::string& sub, size_t sta
 }
 // clang-format on
 
+///
+/// typeName
+///
 template <typename T>
 std::string typeName(const T& v, bool showStd = true)
 {
@@ -90,6 +94,9 @@ std::string typeName(const T& v, bool showStd = true)
     typeStr = std::string(abi::__cxa_demangle(typeStr.c_str(), nullptr, nullptr, &status));
     typeStr = std::regex_replace(typeStr, std::regex("__cxx\\d*::"), "");
     typeStr = std::regex_replace(typeStr, std::regex("__1::"), "");
+    std::smatch match;
+    if (std::regex_search(typeStr, match, std::regex("\\d+(ull)")))
+        typeStr = typeStr.substr(0, match.position(0) + 2) + typeStr.substr(match.position(0) + match.str(0).size());
 #endif
     typeStr = std::regex_replace(typeStr, std::regex("class"), "");
     typeStr = std::regex_replace(typeStr, std::regex("struct"), "");
@@ -125,38 +132,34 @@ std::string typeNameSimplifed(const T& v)
     return typeStr;
 }
 
+///
+/// getShape:
+///
 typedef std::vector<size_t> TensorShape;
-template <typename T>
-void __getShape(const T&, TensorShape&);
-
-template <typename T>
-void __getShape(const T&, TensorShape&, std::false_type)
+template <typename T, typename = typename std::enable_if<!is_container<T>::value>::type>
+void getShape(const T&, TensorShape&)
 {
 }
-
 template <typename Container,
+     typename = typename std::enable_if<is_container<Container>::value>::type,
      typename T = typename std::iterator_traits<typename Container::iterator>::value_type>
-void __getShape(const Container& v, TensorShape& sizeShape, std::true_type)
+void getShape(const Container& v, TensorShape& sizeShape)
 {
     size_t size{v.size()};
     sizeShape.push_back(size);
-    __getShape((size == 0) ? T() : *v.begin(), sizeShape);
+    getShape((size == 0) ? T() : *v.begin(), sizeShape);
 }
-
-template <typename T>
-void __getShape(const T& v, TensorShape& shp)
-{
-    __getShape(v, shp, is_container<T>());
-}
-
 template <typename T>
 TensorShape getShape(const T& v)
 {
     TensorShape shp;
-    __getShape(v, shp);
+    getShape(v, shp);
     return shp;
 }
 
+///
+/// toStr
+///
 template <typename Container,
      typename const_iterator = typename Container::const_iterator,
      typename = typename std::enable_if<is_container<Container>::value>::type>
@@ -191,7 +194,6 @@ std::string toStr(const T& v)
     out << std::boolalpha << v;
     return out.str();
 }
-
 template <typename CT,
      std::size_t N,
      //     typename T = typename std::remove_const<CT>::type,
@@ -262,7 +264,7 @@ inline void _reprn(const Container& v, std::true_type)
               << ", " << out.str() << ")";
 }
 template <typename T>
-inline void reprn(const T& v)
+void reprn(const T& v)
 {
     _reprn(v, is_container<T>());
 }

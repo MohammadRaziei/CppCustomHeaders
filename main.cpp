@@ -26,7 +26,7 @@ int main()
 
     std::vector<vectCompFloat> vecA(2, a);
     vectFloat v(100);
-    //    repr(np::toStr(true), true, np::toStr(false), false);
+    repr(np::toStr(true), true, np::toStr(false), false);
     repr(np::toStr(a));
     repr(np::toStr(a).c_str());
     repr(a);
