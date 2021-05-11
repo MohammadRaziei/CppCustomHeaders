@@ -6,6 +6,7 @@
 #include "defines.h"
 
 #include <list>
+#include <array>
 
 int main()
 {
@@ -13,11 +14,14 @@ int main()
     std::cout << is_container<std::vector<int>>::value << std::endl; ///true
     std::cout << is_container<std::list<int>>::value << std::endl; ///true
     std::cout << is_container<int>::value << std::endl; ///false
-
     vectCompFloat a{{1.f, 2.f}, {3.f, 4.f}, {5.f, 6.f}};
+    std::cout << a << std::endl;
     int b[]{1, 2, 3};
+    std::array<int, 10> arr{1};
+    repr("arr", arr);
     int* pb{b};
     repr(b);
+    std::cout << "b " << b << std::endl;
     repr(pb);
 
     std::vector<vectCompFloat> vecA(2, a);

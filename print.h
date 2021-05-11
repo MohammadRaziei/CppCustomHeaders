@@ -142,9 +142,7 @@ void __getShape(const Container& v, TensorShape& sizeShape, std::true_type)
     if (size == 0)
     {
         typedef typename std::iterator_traits<typename Container::iterator>::value_type T;
-        Container vt(v);
-        vt.push_back(T());
-        __getShape(vt.front(), sizeShape);
+        __getShape(T(), sizeShape);
     }
     else
     {
@@ -167,7 +165,7 @@ TensorShape getShape(const T& v)
 }
 
 template <typename Container>
-std::string toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
+std::string __toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
 {
     std::ostringstream out;
     typedef typename Container::const_iterator const_iterator;
@@ -188,13 +186,13 @@ std::string toStr(const Container& v, const size_t maxPrintSize, const std::stri
     return out.str();
 }
 template <class T>
-std::string toStr(const T& v, const size_t, const std::string&, const std::string&, const std::string&, bool, std::false_type)
+std::string __toStr(const T& v, const size_t, const std::string&, const std::string&, const std::string&, bool, std::false_type)
 {
     std::ostringstream out;
     out << std::boolalpha << v;
     return out.str();
 }
-template <class Container>
+template <class Container, class Enable = void>
 std::string toStr(const Container& v,
      const size_t maxPrintSize = size_t(-1),
      const std::string& sep = ", ",
@@ -202,13 +200,31 @@ std::string toStr(const Container& v,
      const std::string& closing = "]",
      bool removeEndSep = true)
 {
-    return toStr(v, maxPrintSize, sep, opening, closing, removeEndSep, is_container<Container>());
+    return __toStr(v, maxPrintSize, sep, opening, closing, removeEndSep, is_container<Container>());
+}
+//template <typename T, std::size_t N, typename std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
+template <typename CT,
+     std::size_t N,
+     //     typename T = typename std::remove_const<CT>::type,
+     typename = typename std::enable_if<!std::is_same<CT, char>::value>::type>
+std::string toStr(const CT (&arr)[N], const size_t& maxPrintSize = Max_Print_Vector_Size)
+{
+    return toStr(std::vector<CT>(arr, arr + N), maxPrintSize);
 }
 
 } // namespace np
 
-template <class STREAM, typename T>
-STREAM& operator<<(STREAM& out, const std::vector<T>& v)
+template <class STREAM, typename Container, typename = typename std::enable_if<is_container<Container>::value>::type>
+STREAM& operator<<(STREAM& out, const Container& v)
+{
+    out << np::toStr(v, Max_Print_Vector_Size);
+    return out;
+}
+template <class STREAM,
+     typename CT,
+     std::size_t N,
+     typename = typename std::enable_if<!std::is_same<CT, char>::value>::type>
+STREAM& operator<<(STREAM& out, const CT (&v)[N])
 {
     out << np::toStr(v, Max_Print_Vector_Size);
     return out;
@@ -221,7 +237,7 @@ void print()
 template <typename T>
 void printn(const T& a)
 {
-    std::cout << np::toStr(a, Max_Print_Vector_Size);
+    std::cout << np::toStr(a);
 }
 template <typename T, class... ARG>
 void printn(const T& a, const ARG&... arg)
