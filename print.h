@@ -134,20 +134,13 @@ void __getShape(const T&, TensorShape&, std::false_type)
 {
 }
 
-template <typename Container>
+template <typename Container,
+     typename T = typename std::iterator_traits<typename Container::iterator>::value_type>
 void __getShape(const Container& v, TensorShape& sizeShape, std::true_type)
 {
     size_t size{v.size()};
     sizeShape.push_back(size);
-    if (size == 0)
-    {
-        typedef typename std::iterator_traits<typename Container::iterator>::value_type T;
-        __getShape(T(), sizeShape);
-    }
-    else
-    {
-        __getShape(v.front(), sizeShape);
-    }
+    __getShape((size == 0) ? T() : *v.begin(), sizeShape);
 }
 
 template <typename T>
@@ -164,7 +157,9 @@ TensorShape getShape(const T& v)
     return shp;
 }
 
-template <typename Container, typename = typename std::enable_if<is_container<Container>::value>::type>
+template <typename Container,
+     typename const_iterator = typename Container::const_iterator,
+     typename = typename std::enable_if<is_container<Container>::value>::type>
 std::string toStr(const Container& v,
      const size_t maxPrintSize = size_t(-1),
      const std::string& sep = ", ",
@@ -173,7 +168,6 @@ std::string toStr(const Container& v,
      bool removeEndSep = true)
 {
     std::ostringstream out;
-    typedef typename Container::const_iterator const_iterator;
     if (v.size() == 0)
     {
         out << opening << " " << closing;
