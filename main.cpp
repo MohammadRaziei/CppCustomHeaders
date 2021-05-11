@@ -9,9 +9,10 @@
 
 int main()
 {
+    std::cout << std::boolalpha;
     std::cout << is_container<std::vector<int>>::value << std::endl; //true
     std::cout << is_container<std::list<int>>::value << std::endl; //true
-    std::cout << is_container<int>::value << std::endl; //true
+    std::cout << is_container<int>::value << std::endl; //false
 
     vectCompFloat a{{1.f, 2.f}, {3.f, 4.f}, {5.f, 6.f}};
     std::vector<vectCompFloat> vecA(2, a);

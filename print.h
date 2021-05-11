@@ -7,6 +7,7 @@
 #include <sstream>
 #include <regex>
 #include <type_traits>
+#include <iomanip>
 
 #define eprintf(format, ...) fprintf(stderr, format __VA_OPT__(, ) __VA_ARGS__)
 #define show(x)              \
@@ -154,10 +155,6 @@ size_t countSubString(const std::string& str, const std::string& sub, size_t sta
 }
 // clang-format on
 
-std::string toStr(const bool& b)
-{
-    return (b ? "true" : "false");
-}
 template <typename Container>
 std::string toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
 {
@@ -183,7 +180,7 @@ template <class T>
 std::string toStr(const T& v, const size_t, const std::string&, const std::string&, const std::string&, bool, std::false_type)
 {
     std::ostringstream out;
-    out << v;
+    out << std::boolalpha << v;
     return out.str();
 }
 template <class Container>
@@ -196,6 +193,7 @@ std::string toStr(const Container& v,
 {
     return toStr(v, maxPrintSize, sep, opening, closing, removeEndSep, is_container<Container>());
 }
+
 } // namespace np
 
 template <class STREAM, typename T>
@@ -210,19 +208,9 @@ void print()
     std::cout << std::endl;
 }
 template <typename T>
-void _printn(const T& a, std::false_type)
-{
-    std::cout << np::toStr(a);
-}
-template <typename T>
-void _printn(const T& a, std::true_type)
-{
-    std::cout << np::toStr(a, Max_Print_Vector_Size);
-}
-template <typename T>
 void printn(const T& a)
 {
-    _printn(a, is_container<T>());
+    std::cout << np::toStr(a, Max_Print_Vector_Size);
 }
 template <typename T, class... ARG>
 void printn(const T& a, const ARG&... arg)
@@ -243,14 +231,14 @@ void print(const ARG&... arg)
 ///
 
 template <typename T>
-void _reprn(const T& value, std::false_type)
+inline void _reprn(const T& value, std::false_type)
 {
     std::ostringstream out;
     out << np::toStr(value);
     std::cout << np::typeNameSimplifed(value) << "(" << out.str() << ")";
 }
 template <typename Container>
-void _reprn(const Container& v, std::true_type)
+inline void _reprn(const Container& v, std::true_type)
 {
     std::ostringstream out;
     out << np::toStr(v, Max_Print_Vector_Size);
