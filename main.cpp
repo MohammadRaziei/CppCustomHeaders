@@ -10,20 +10,28 @@
 int main()
 {
     std::cout << std::boolalpha;
-    std::cout << is_container<std::vector<int>>::value << std::endl; //true
-    std::cout << is_container<std::list<int>>::value << std::endl; //true
-    std::cout << is_container<int>::value << std::endl; //false
+    std::cout << is_container<std::vector<int>>::value << std::endl; ///true
+    std::cout << is_container<std::list<int>>::value << std::endl; ///true
+    std::cout << is_container<int>::value << std::endl; ///false
 
     vectCompFloat a{{1.f, 2.f}, {3.f, 4.f}, {5.f, 6.f}};
+    int b[]{1, 2, 3};
+    int* pb{b};
+    repr(b);
+    repr(pb);
+
     std::vector<vectCompFloat> vecA(2, a);
     vectFloat v(100);
-    repr(np::toStr(true));
+    repr(np::toStr(true), true, np::toStr(false), false);
     repr(np::toStr(a));
+    repr(np::toStr(a).c_str());
     repr(a);
     print(np::toStr(a));
     std::generate(v.begin(), v.end(), [n = 0.f]() mutable { return float(++n); });
     show(v);
     repr(std::list<vectDouble>());
+    repr(std::list<vectDouble>({{1.5, 2.5, 3.5}, {4.5, 5.5, 7.5}}));
+    repr(std::list<vectDouble>({{1.5}}));
     print(np::getShape(5));
     print("Hello World!", 5, 2.5, true, 3.14f, 25l);
     repr("Hello World!", 5, 2.5, true, 3.14f, 25l);

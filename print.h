@@ -1,6 +1,8 @@
 #ifndef PRINT_H
 #define PRINT_H
-
+#ifdef __GNUG__
+#include <cxxabi.h>
+#endif
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -8,6 +10,7 @@
 #include <regex>
 #include <type_traits>
 #include <iomanip>
+#include <cmath>
 
 #define eprintf(format, ...) fprintf(stderr, format __VA_OPT__(, ) __VA_ARGS__)
 #define show(x)              \
@@ -68,25 +71,40 @@ struct is_container : std::integral_constant<bool, !std::is_same<T, std::string>
 };
 namespace np
 {
+// clang-format off
+size_t countSubString(const std::string& str, const std::string& sub, size_t start = 0)
+{
+    size_t num = 0;
+    const size_t len = sub.empty() ? 1 : sub.length();
+    for (size_t i = start; (i = str.find(sub, i)) != std::string::npos; num++, i += len);
+    return num;
+}
+// clang-format on
+
 template <typename T>
 std::string typeName(const T& v, bool showStd = true)
 {
     std::string typeStr = typeid(v).name();
-    typeStr = std::regex_replace(typeStr, std::regex("class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >"), "std::string");
-    //    typeStr = std::regex_replace(typeStr, std::regex(",class std::allocator<(?:[^><]+|<(?:[^><]+|<[^><]*>)*>)*> "), "");
-    std::string classAllocator = ",class std::allocator";
+#ifdef __GNUG__
+    int status = -4; /// some arbitrary value to eliminate the compiler warning
+    typeStr = std::string(abi::__cxa_demangle(typeStr.c_str(), nullptr, nullptr, &status));
+    typeStr = std::regex_replace(typeStr, std::regex("__cxx\\d*::"), "");
+    typeStr = std::regex_replace(typeStr, std::regex("__1::"), "");
+#endif
+    typeStr = std::regex_replace(typeStr, std::regex("class"), "");
+    typeStr = std::regex_replace(typeStr, std::regex("struct"), "");
+    typeStr = std::regex_replace(typeStr, std::regex("const"), "");
+    typeStr = std::regex_replace(typeStr, std::regex("__ptr64"), "");
+    typeStr = std::regex_replace(typeStr, std::regex(" "), "");
+    typeStr = std::regex_replace(typeStr, std::regex("std::basic_string<char,std::char_traits<char>,std::allocator<char>>"), "std::string");
+    std::string classAllocator = ",std::allocator";
     const size_t found = typeStr.find(classAllocator);
     if (found != std::string::npos)
     {
-        //        typeStr = typeStr.substr(0, found);
-        //        const size_t numFound = countSubString(typeStr, "vector");
-        //        typeStr += std::string(numFound, '>');
         size_t numFound = countSubString(typeStr, classAllocator, found + 1) + 1;
         numFound = static_cast<size_t>(std::log2(static_cast<float>(numFound + 1)));
         typeStr = typeStr.substr(0, found) + std::string(numFound, '>');
     }
-    typeStr = std::regex_replace(typeStr, std::regex("class "), "");
-    typeStr = std::regex_replace(typeStr, std::regex(" const "), "");
     if (!showStd) typeStr = std::regex_replace(typeStr, std::regex("std::"), "");
     return typeStr;
 }
@@ -96,25 +114,28 @@ std::string typeNameSimplifed(const T& v)
     std::string typeStr = typeName(v, false);
     typeStr = std::regex_replace(typeStr, std::regex("vector<complex<float>>"), "vectCompFloat");
     typeStr = std::regex_replace(typeStr, std::regex("vector<complex<double>>"), "vectCompDouble");
+    typeStr = std::regex_replace(typeStr, std::regex("vector<complex<int>>"), "vectCompInt");
     typeStr = std::regex_replace(typeStr, std::regex("vector<float>"), "vectFloat");
     typeStr = std::regex_replace(typeStr, std::regex("vector<double>"), "vectDouble");
+    typeStr = std::regex_replace(typeStr, std::regex("vector<int>"), "vectInt");
     typeStr = std::regex_replace(typeStr, std::regex("vector<string>"), "vectStr");
     typeStr = std::regex_replace(typeStr, std::regex("complex<float>"), "compFloat");
     typeStr = std::regex_replace(typeStr, std::regex("complex<double>"), "compDouble");
-
+    typeStr = std::regex_replace(typeStr, std::regex("complex<int>"), "compInt");
     return typeStr;
 }
 
+typedef std::vector<size_t> TensorShape;
 template <typename T>
-void __getShape(const T&, std::vector<size_t>&);
+void __getShape(const T&, TensorShape&);
 
 template <typename T>
-void __getShape(const T&, std::vector<size_t>&, std::false_type)
+void __getShape(const T&, TensorShape&, std::false_type)
 {
 }
 
 template <typename Container>
-void __getShape(const Container& v, std::vector<size_t>& sizeShape, std::true_type)
+void __getShape(const Container& v, TensorShape& sizeShape, std::true_type)
 {
     size_t size{v.size()};
     sizeShape.push_back(size);
@@ -132,28 +153,18 @@ void __getShape(const Container& v, std::vector<size_t>& sizeShape, std::true_ty
 }
 
 template <typename T>
-void __getShape(const T& v, std::vector<size_t>& shp)
+void __getShape(const T& v, TensorShape& shp)
 {
     __getShape(v, shp, is_container<T>());
 }
 
 template <typename T>
-std::vector<size_t> getShape(const T& v)
+TensorShape getShape(const T& v)
 {
-    std::vector<size_t> shp;
+    TensorShape shp;
     __getShape(v, shp);
     return shp;
 }
-
-// clang-format off
-size_t countSubString(const std::string& str, const std::string& sub, size_t start = 0)
-{
-    size_t num = 0;
-    const size_t len = sub.empty() ? 1 : sub.length();
-    for (size_t i = start; (i = str.find(sub, i)) != std::string::npos; num++, i += len);
-    return num;
-}
-// clang-format on
 
 template <typename Container>
 std::string toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
