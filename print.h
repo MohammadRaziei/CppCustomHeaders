@@ -164,8 +164,13 @@ TensorShape getShape(const T& v)
     return shp;
 }
 
-template <typename Container>
-std::string __toStr(const Container& v, const size_t maxPrintSize, const std::string& sep, const std::string& opening, const std::string& closing, bool removeEndSep, std::true_type)
+template <typename Container, typename = typename std::enable_if<is_container<Container>::value>::type>
+std::string toStr(const Container& v,
+     const size_t maxPrintSize = size_t(-1),
+     const std::string& sep = ", ",
+     const std::string& opening = "[",
+     const std::string& closing = "]",
+     bool removeEndSep = true)
 {
     std::ostringstream out;
     typedef typename Container::const_iterator const_iterator;
@@ -185,24 +190,14 @@ std::string __toStr(const Container& v, const size_t maxPrintSize, const std::st
     }
     return out.str();
 }
-template <class T>
-std::string __toStr(const T& v, const size_t, const std::string&, const std::string&, const std::string&, bool, std::false_type)
+template <typename T, typename = typename std::enable_if<!is_container<T>::value>::type>
+std::string toStr(const T& v)
 {
     std::ostringstream out;
     out << std::boolalpha << v;
     return out.str();
 }
-template <class Container, class Enable = void>
-std::string toStr(const Container& v,
-     const size_t maxPrintSize = size_t(-1),
-     const std::string& sep = ", ",
-     const std::string& opening = "[",
-     const std::string& closing = "]",
-     bool removeEndSep = true)
-{
-    return __toStr(v, maxPrintSize, sep, opening, closing, removeEndSep, is_container<Container>());
-}
-//template <typename T, std::size_t N, typename std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
+
 template <typename CT,
      std::size_t N,
      //     typename T = typename std::remove_const<CT>::type,
@@ -273,7 +268,7 @@ inline void _reprn(const Container& v, std::true_type)
               << ", " << out.str() << ")";
 }
 template <typename T>
-void reprn(const T& v)
+inline void reprn(const T& v)
 {
     _reprn(v, is_container<T>());
 }
