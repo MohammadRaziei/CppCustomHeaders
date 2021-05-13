@@ -11,27 +11,31 @@
 namespace io
 {
 template <typename T>
-std::vector<T> readFromFile(const std::string filename, size_t length = (size_t)(-1), size_t* start = nullptr) noexcept
+void readFromFile(const std::string filename,
+     std::vector<T>& vec,
+     size_t length = (size_t)(-1),
+     size_t* start = nullptr) noexcept
 {
-    std::vector<T> buf;
-    /// open the file:
+    // open the file:
     std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open())
     {
         fprintf(stderr, "Cannot open: \"%s\"\n", filename.c_str());
-        return buf;
+        infile.close();
+        return;
     }
-    /// Stop eating new lines in binary mode!!!
+    // Stop eating new lines in binary mode!!!
     infile.unsetf(std::ios::skipws);
 
     const size_t startByte = start ? *start * sizeof(T) : 0l;
-    /// get its size:
+    // get its size:
     infile.seekg(0, std::ios::end);
     size_t fileSizeByte = infile.tellg();
     if (startByte > fileSizeByte)
     {
         fprintf(stderr, "startByte > fileSizeByte\n");
-        return buf;
+        infile.close();
+        return;
     }
     infile.seekg(startByte, std::ios::beg);
     fileSizeByte -= startByte;
@@ -40,10 +44,69 @@ std::vector<T> readFromFile(const std::string filename, size_t length = (size_t)
     fileSize = std::min<size_t>(fileSize, length);
     if (start) *start += fileSize;
 
-    buf.resize(fileSize);
-    infile.read(reinterpret_cast<char*>(buf.data()), buf.size() * sizeof(T));
-
+    vec.resize(fileSize);
+    infile.read(reinterpret_cast<char*>(vec.data()), vec.size() * sizeof(T));
+    infile.close();
+}
+template <typename T = float>
+std::vector<T> readFromFile(const std::string filename,
+     size_t length = (size_t)(-1),
+     size_t* start = nullptr) noexcept
+{
+    std::vector<T> buf;
+    readFromFile(filename, buf, length, start);
     return buf;
+}
+template <typename T>
+void readStereoFromFile(const std::string& filename, std::vector<T>& vecReal, std::vector<T>& vecImag, const size_t length = (size_t)-1, size_t* start = nullptr)
+{
+    // open the file:
+    std::ifstream infile(filename, std::ios::binary);
+    if (!infile.is_open())
+    {
+        fprintf(stderr, "Cannot open: \"%s\"\n", filename.c_str());
+        infile.close();
+        return;
+    }
+    // Stop eating new lines in binary mode!!!
+    infile.unsetf(std::ios::skipws);
+
+    const size_t startByte = start ? *start * sizeof(T) : 0l;
+    // get its size:
+    infile.seekg(0, std::ios::end);
+    size_t fileSizeByte = infile.tellg();
+    if (startByte > fileSizeByte)
+    {
+        fprintf(stderr, "startByte > fileSizeByte\n");
+        infile.close();
+        return;
+    }
+    infile.seekg(startByte, std::ios::beg);
+    fileSizeByte -= startByte;
+
+    size_t fileSize = fileSizeByte / sizeof(T);
+    fileSize = std::min<size_t>(fileSize, length);
+    if (start) *start += fileSize;
+    fileSize /= 2;
+
+    vecReal.resize(fileSize);
+    vecImag.resize(fileSize);
+
+    T* vecRealPtr{vecReal.data()};
+    T* vecImagPtr{vecImag.data()};
+    T readingVar;
+    char* readingChar = reinterpret_cast<char*>(&readingVar);
+    size_t i = 0;
+    while ((!infile.eof()) && (i++ < fileSize))
+    {
+        infile.read(readingChar, sizeof(T));
+        *(vecRealPtr++) = readingVar;
+        infile.read(readingChar, sizeof(T));
+        *(vecImagPtr++) = readingVar;
+    }
+    vecReal.resize(i);
+    vecImag.resize(i);
+    infile.close();
 }
 
 std::string readTextFile(const std::string& filename) noexcept
