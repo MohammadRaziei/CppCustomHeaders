@@ -57,6 +57,7 @@ std::vector<T> readFromFile(const std::string filename,
     readFromFile(filename, buf, length, start);
     return buf;
 }
+
 template <typename T>
 void readStereoFromFile(const std::string& filename, std::vector<T>& vecReal, std::vector<T>& vecImag, const size_t length = (size_t)-1, size_t* start = nullptr)
 {
@@ -85,7 +86,7 @@ void readStereoFromFile(const std::string& filename, std::vector<T>& vecReal, st
     fileSizeByte -= startByte;
 
     size_t fileSize = fileSizeByte / sizeof(T);
-    fileSize = std::min<size_t>(fileSize, length);
+    fileSize = std::min<size_t>(fileSize, length * 2);
     if (start) *start += fileSize;
     fileSize /= 2;
 
@@ -97,7 +98,7 @@ void readStereoFromFile(const std::string& filename, std::vector<T>& vecReal, st
     T readingVar;
     char* readingChar = reinterpret_cast<char*>(&readingVar);
     size_t i = 0;
-    while ((!infile.eof()) && (i++ < fileSize))
+    while ((!infile.eof()) && (++i < fileSize))
     {
         infile.read(readingChar, sizeof(T));
         *(vecRealPtr++) = readingVar;

@@ -161,8 +161,8 @@ TensorShape getShape(const T& v)
 /// toStr
 ///
 template <typename Container,
-     typename const_iterator = typename Container::const_iterator,
-     typename = typename std::enable_if<is_container<Container>::value>::type>
+          typename = typename std::enable_if<is_container<Container>::value>::type,
+     typename const_iterator = typename Container::const_iterator>
 std::string toStr(const Container& v,
      const size_t maxPrintSize = size_t(-1),
      const std::string& sep = ", ",
